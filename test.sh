@@ -1,5 +1,5 @@
 # Sets the initial names as maven by default
-versionSetCommand="echo '\n\ntask setVersion { doLast { if (project.hasProperty(\"newVersion\")) { project.version = newVersion } } }' >> build.gradle"
+versionSetCommand="eval echo '\n\ntask setVersion { doLast { if (project.hasProperty(\"newVersion\")) { project.version = newVersion } } }' >> build.gradle"
 versionSaveCommand="gradle setVersion -P"
 
 # Process extra arguments to add sources and javadoc
@@ -16,5 +16,7 @@ versionSaveCommand="gradle setVersion -P"
 gradle clean
 
 new_version="$1"
-sed -i '' "s/version = '\.\*'$/version = '$new_version'/g" build.gradle
-gradle setVersion build
+${versionSetCommand}
+gradle setVersion build -PnewVersion=${new_version}
+
+git reset --hard
