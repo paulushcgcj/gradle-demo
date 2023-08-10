@@ -39,7 +39,7 @@ jobs:
           user: ${{ github.repository_owner }}
 
       - name: Publish Core
-        uses: paulushcgcj/action-java-publish@v0.0.5
+        uses: paulushcgcj/action-java-publish@v0.0.6
         with:
           commands: echo 1.0.0
           dir: .
