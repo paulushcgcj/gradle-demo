@@ -1,8 +1,9 @@
 name: Pull Request Open
 
 on:
-  branch:
-    - main
+  push:
+    branches:
+      - main
 
 concurrency:
   # PR open and close use the same group, allowing only one at a time
