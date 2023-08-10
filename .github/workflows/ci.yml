@@ -49,3 +49,4 @@ jobs:
           java-version: "17"
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          USERNAME: ${{ github.repository_owner }}

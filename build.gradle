@@ -1,5 +1,6 @@
 plugins {
 	id 'java'
+	id 'com.github.package-publish' version '0.21'
 	id 'org.springframework.boot' version '3.1.2'
 	id 'io.spring.dependency-management' version '1.1.2'
 }
@@ -26,6 +27,24 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			from components.java
+
+			groupId = project.group
+			artifactId = 'gradle-demo'
+			version = project.version
+		}
+	}
+}
+
+githubPackages {
+	username = project.findProperty("gprUser") ?: System.getenv("USERNAME")
+	token = project.findProperty("gprToken") ?: System.getenv("GITHUB_TOKEN")
+	repository = "paulushcgcj/gradle-demo" // Replace with your repository's owner and name
 }
 
 tasks.named('test') {
