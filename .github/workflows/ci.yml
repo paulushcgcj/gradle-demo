@@ -1,0 +1,94 @@
+name: Pull Request Open
+
+on:
+  branch:
+    - main
+
+concurrency:
+  # PR open and close use the same group, allowing only one at a time
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "gradle"
+          server-id: "github"
+
+      - name: Removing old core
+        uses: paulushcgcj/delete-github-package@1.0.0
+        continue-on-error: true
+        with:
+          token: ${{ secrets.PAT }}
+          type: gradle
+          name: com.alfafa.gradle-demo-groovy
+          version: 1.0.0
+          user: ${{ github.repository_owner }}
+
+      - name: Publish Core
+        uses: paulushcgcj/action-java-publish@v0.0.5
+        with:
+          commands: echo 1.0.0
+          dir: core
+          app-version: 1.0.0
+          java-cache: gradle
+          java-distribution: temurin
+          java-version: "17"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  build-spring:
+    name: Build Spring
+    runs-on: ubuntu-22.04
+    needs:
+      - pr-validation
+      - pr-greeting
+      - build-core
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: "maven"
+          server-id: "github"
+
+      - uses: bcgov-nr/action-test-and-analyse-java@v0.2.0
+        name: Spring Coverage
+        with:
+          commands: |
+            mvn versions:use-dep-version -DdepVersion=${{ needs.pr-validation.outputs.version }}.PR${{ github.event.number }} -Dincludes=ca.bc.gov.nrs-commons:forest-client-core -DforceVersion=true --file pom.xml
+            mvn -B verify -P all-tests checkstyle:checkstyle -Dcheckstyle.skip=false --file pom.xml
+          dir: spring
+          java-cache: maven
+          java-distribution: temurin
+          java-version: "17"
+          sonar_args: >
+            -Dsonar.organization=bcgov-sonarcloud
+            -Dsonar.projectKey=bcgov_nr-forest-client-commons
+          sonar_project_token: ${{ secrets.SONAR_TOKEN_COMMONS }}
+
+      - name: Publish Spring
+        working-directory: ./spring
+        run: |
+          mvn versions:use-dep-version -DdepVersion=${{ needs.pr-validation.outputs.version }}.PR${{ github.event.number }} -Dincludes=ca.bc.gov.nrs-commons:forest-client-core -DforceVersion=true --file pom.xml
+          mvn versions:set -DnewVersion='${{ needs.pr-validation.outputs.version }}.PR${{ github.event.number }}' -DskipTests -Dtests.skip=true --file pom.xml
+          mvn versions:commit --file pom.xml
+          mvn -B source:jar deploy --file pom.xml
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
